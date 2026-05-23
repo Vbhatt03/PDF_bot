@@ -105,7 +105,7 @@ def ask(query: str) -> dict:
 
     # Layer 2: LLM's own declaration
     if "[NOT FOUND]" in answer:
-        return {"answer": "I cannot find the answer to that question from the given pdf", "chunks": []}
+        return {"answer": "The PDF does not contain sufficient information to answer the question.", "chunks": []}
 
     return {"answer": answer, "chunks": chunks}
 

@@ -1,9 +1,6 @@
 # query.py
-import os
-import google.generativeai as genai
-from dotenv import load_dotenv
 from .ingest import get_collection
-load_dotenv()
+import ollama
 
 SIMILARITY_THRESHOLD = 0.4
 
@@ -16,17 +13,8 @@ SYSTEM_PROMPT = """You are a precise document assistant. Follow these rules with
 
 
 def embed_query(query: str) -> list[float]:
-    """
-    Embed a user query using Gemini text-embedding-004.
-    Uses retrieval_query task type — distinct from retrieval_document used at ingestion.
-    """
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    response = genai.embed_content(
-        model="models/gemini-embedding-2",
-        content=query,
-        task_type="retrieval_query",
-    )
-    return response["embedding"]
+    response = ollama.embed(model="mxbai-embed-large", input=query)
+    return response["embeddings"][0]
 
 def retrieve_chunks(query_embedding: list[float], k: int = 6, source: str= None) -> list[dict]:
     """
@@ -83,7 +71,6 @@ def ask(query: str, source: str = None) -> dict:
     Full query pipeline: embed → retrieve → prompt → generate.
     Returns a dict with 'answer' and 'chunks' (the sources used).
     """
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
     # Layer 1: similarity threshold — free, no LLM call
     chunks = retrieve_chunks(embed_query(query), source = source)
@@ -93,16 +80,15 @@ def ask(query: str, source: str = None) -> dict:
     # Build prompt and call LLM
     user_prompt = build_prompt(query, chunks)
 
-    model = genai.GenerativeModel(
-        model_name="gemini-3.5-flash",
-        system_instruction=SYSTEM_PROMPT,
-    )
-    response = model.generate_content(
-        user_prompt,
-        generation_config=genai.GenerationConfig(temperature=0),
+    response = ollama.chat(
+        model="phi3:mini",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
     )
 
-    answer = response.text.strip()
+    answer = response["message"]["content"].strip()
 
     # Layer 2: LLM's own declaration
     if "[NOT FOUND]" in answer:

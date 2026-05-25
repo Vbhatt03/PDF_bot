@@ -4,9 +4,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
 import chromadb
 from chromadb.config import Settings
-import google.generativeai as genai
-from dotenv import load_dotenv
-load_dotenv() 
+import ollama
 
 CHROMA_DIR = "chroma_db"
 COLLECTION_NAME = "pdf_bot"
@@ -84,35 +82,19 @@ def get_collection():
 
 
 def embed_chunks(chunks: list[dict]) -> None:
-    """Embed each chunk with Gemini text-embedding-004 and upsert into Chroma."""
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
     collection = get_collection()
-
     texts = [c["text"] for c in chunks]
 
-    # retrieval_document task type — optimised for ingestion side
-    response = genai.embed_content(
-        model="models/gemini-embedding-2",
-        content=texts,
-        task_type="retrieval_document",
-    )
-    embeddings = response["embedding"]  # list of lists
+    response = ollama.embed(model="mxbai-embed-large", input=texts)
+    embeddings = response["embeddings"]  # list of lists
 
-    ids = [
-        f"{c['source']}::{c['page']}::{c['chunk_index']}"
-        for c in chunks
-    ]
+    ids = [f"{c['source']}::{c['page']}::{c['chunk_index']}" for c in chunks]
     metadatas = [
         {"source": c["source"], "page": c["page"], "chunk_index": c["chunk_index"]}
         for c in chunks
     ]
 
-    collection.upsert(
-        ids=ids,
-        embeddings=embeddings,
-        documents=texts,
-        metadatas=metadatas,
-    )
+    collection.upsert(ids=ids, embeddings=embeddings, documents=texts, metadatas=metadatas)
     print(f"Upserted {len(chunks)} chunks into '{COLLECTION_NAME}'.")
 
 if __name__ == "__main__":

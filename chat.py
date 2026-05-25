@@ -33,7 +33,7 @@ def main():
         if not query:
             continue
 
-        result = ask(query)
+        result = ask(query, source = file_path)
         print(f"\nBot: {result['answer']}\n")
         if result["chunks"]:
             print("Sources:")

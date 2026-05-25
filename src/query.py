@@ -28,7 +28,7 @@ def embed_query(query: str) -> list[float]:
     )
     return response["embedding"]
 
-def retrieve_chunks(query_embedding: list[float], k: int = 6) -> list[dict]:
+def retrieve_chunks(query_embedding: list[float], k: int = 6, source: str= None) -> list[dict]:
     """
     Query Chroma for the top-k most similar chunks.
     Converts Chroma's cosine distance to similarity (similarity = 1 - distance).
@@ -36,11 +36,12 @@ def retrieve_chunks(query_embedding: list[float], k: int = 6) -> list[dict]:
     Returns [] if nothing passes — caller should return [NOT FOUND] without calling the LLM.
     """
     collection = get_collection()
-
+    where_filter = {"source": source} if source else None
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=k,
         include=["documents", "metadatas", "distances"],
+        where = where_filter,
     )
 
     chunks = []
@@ -51,7 +52,7 @@ def retrieve_chunks(query_embedding: list[float], k: int = 6) -> list[dict]:
     ):
         similarity = 1 - distance
         #print(f"DEBUG similarity={similarity:.4f}  chunk: {text[:60]!r}")   
-        if similarity >= SIMILARITY_THRESHOLD:
+        if source or similarity >= SIMILARITY_THRESHOLD:
             chunks.append({
                 "text": text,
                 "source": metadata["source"],
@@ -77,7 +78,7 @@ def build_prompt(query: str, chunks: list[dict]) -> str:
 
     return f"CONTEXT:\n{context}\n\nQUESTION:\n{query}"
 
-def ask(query: str) -> dict:
+def ask(query: str, source: str = None) -> dict:
     """
     Full query pipeline: embed → retrieve → prompt → generate.
     Returns a dict with 'answer' and 'chunks' (the sources used).
@@ -85,7 +86,7 @@ def ask(query: str) -> dict:
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
     # Layer 1: similarity threshold — free, no LLM call
-    chunks = retrieve_chunks(embed_query(query))
+    chunks = retrieve_chunks(embed_query(query), source = source)
     if not chunks:
         return {"answer": "[NOT FOUND]", "chunks": []}
 

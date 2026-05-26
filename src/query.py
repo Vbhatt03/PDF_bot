@@ -1,9 +1,13 @@
 # query.py
+from .ingest import get_collection
 import os
 import google.generativeai as genai
-from dotenv import load_dotenv
-from .ingest import get_collection
-load_dotenv()
+
+try:
+    import ollama
+    HAS_OLLAMA = True
+except ImportError:
+    HAS_OLLAMA = False  
 
 SIMILARITY_THRESHOLD = 0.4
 
@@ -15,33 +19,34 @@ SYSTEM_PROMPT = """You are a precise document assistant. Follow these rules with
 
 
 
-def embed_query(query: str) -> list[float]:
-    """
-    Embed a user query using Gemini text-embedding-004.
-    Uses retrieval_query task type — distinct from retrieval_document used at ingestion.
-    """
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    response = genai.embed_content(
-        model="models/gemini-embedding-2",
-        content=query,
-        task_type="retrieval_query",
-    )
-    return response["embedding"]
+def embed_query(query: str, provider: str = "ollama") -> list[float]:   # ADD provider
+    if provider == "ollama" and not HAS_OLLAMA:
+        raise RuntimeError(
+            "Ollama is not installed. Install it with: pip install ollama\n"
+            "Or install the optional dependency: pip install -e .[ollama]\n"
+            "Once Ollama installation is complete, run: ollama pull mxbai-embed-large\n"
+            "ollama pull phi3:mini"
+        )
+    
+    if provider == "gemini":                                 # ADD branch
+        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+        return genai.embed_content(
+            model="models/gemini-embedding-2",
+            content=query,
+            task_type="retrieval_query",
+        )["embedding"]
+    response = ollama.embed(model="mxbai-embed-large", input=query)
+    return response["embeddings"][0]
 
-def retrieve_chunks(query_embedding: list[float], k: int = 6, source: str= None) -> list[dict]:
-    """
-    Query Chroma for the top-k most similar chunks.
-    Converts Chroma's cosine distance to similarity (similarity = 1 - distance).
-    Discards any chunk below SIMILARITY_THRESHOLD.
-    Returns [] if nothing passes — caller should return [NOT FOUND] without calling the LLM.
-    """
-    collection = get_collection()
+def retrieve_chunks(query_embedding: list[float], k: int = 6,
+                    source: str = None, provider: str = "ollama") -> list[dict]:  # ADD provider
+    collection = get_collection(provider)                    # PASS provider
     where_filter = {"source": source} if source else None
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=k,
         include=["documents", "metadatas", "distances"],
-        where = where_filter,
+        where=where_filter,
     )
 
     chunks = []
@@ -51,7 +56,6 @@ def retrieve_chunks(query_embedding: list[float], k: int = 6, source: str= None)
         results["distances"][0],
     ):
         similarity = 1 - distance
-        #print(f"DEBUG similarity={similarity:.4f}  chunk: {text[:60]!r}")   
         if source or similarity >= SIMILARITY_THRESHOLD:
             chunks.append({
                 "text": text,
@@ -60,7 +64,6 @@ def retrieve_chunks(query_embedding: list[float], k: int = 6, source: str= None)
                 "chunk_index": metadata["chunk_index"],
                 "similarity": round(similarity, 4),
             })
-
     return chunks
 
 def build_prompt(query: str, chunks: list[dict]) -> str:
@@ -78,37 +81,39 @@ def build_prompt(query: str, chunks: list[dict]) -> str:
 
     return f"CONTEXT:\n{context}\n\nQUESTION:\n{query}"
 
-def ask(query: str, source: str = None) -> dict:
-    """
-    Full query pipeline: embed → retrieve → prompt → generate.
-    Returns a dict with 'answer' and 'chunks' (the sources used).
-    """
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-
-    # Layer 1: similarity threshold — free, no LLM call
-    chunks = retrieve_chunks(embed_query(query), source = source)
+def ask(query: str, source: str = None, provider: str = "ollama") -> dict:   # ADD provider
+    chunks = retrieve_chunks(embed_query(query, provider), source=source, provider=provider)  # PASS
     if not chunks:
-        return {"answer": "[NOT FOUND]", "chunks": []}
+        return {"answer": "[NOT FOUND]", "chunks": [], "provider": provider}
 
-    # Build prompt and call LLM
     user_prompt = build_prompt(query, chunks)
 
-    model = genai.GenerativeModel(
-        model_name="gemini-3.5-flash",
-        system_instruction=SYSTEM_PROMPT,
-    )
-    response = model.generate_content(
-        user_prompt,
-        generation_config=genai.GenerationConfig(temperature=0),
-    )
+    if provider == "gemini":                                 # ADD branch
+        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+        model = genai.GenerativeModel("gemini-3.5-flash", system_instruction=SYSTEM_PROMPT)
+        response = model.generate_content(user_prompt)
+        answer = response.text.strip()
+    else:
+        if not HAS_OLLAMA:
+            raise RuntimeError(
+            "Ollama is not installed. Install it with: pip install ollama\n"
+            "Or install the optional dependency: pip install -e .[ollama]\n"
+            "Once Ollama installation is complete, run: ollama pull mxbai-embed-large\n"
+            "ollama pull phi3:mini"
+            )
+        response = ollama.chat(
+            model="phi3:mini",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        answer = response["message"]["content"].strip()
 
-    answer = response.text.strip()
-
-    # Layer 2: LLM's own declaration
     if "[NOT FOUND]" in answer:
-        return {"answer": "The PDF does not contain sufficient information to answer the question.", "chunks": []}
+        return {"answer": "The PDF does not contain sufficient information to answer the question.", "chunks": [], "provider": provider}
 
-    return {"answer": answer, "chunks": chunks}
+    return {"answer": answer, "chunks": chunks, "provider": provider}
 
 
 if __name__ == "__main__":

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Bot</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f5f5f5; }
+  header { padding: 12px 20px; background: #fff; border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 1rem; font-weight: 600; }
+  #file-label { cursor: pointer; padding: 6px 12px; background: #0070f3; color: #fff; border-radius: 4px; font-size: 0.85rem; }
+  #file-label:disabled, #file-label.disabled { background: #aaa; cursor: default; }
+  #file-input { display: none; }
+  #status { font-size: 0.8rem; color: #555; }
+  #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: 70%; padding: 10px 14px; border-radius: 8px; line-height: 1.5; font-size: 0.9rem; white-space: pre-wrap; }
+  .user { align-self: flex-end; background: #0070f3; color: #fff; }
+  .bot  { align-self: flex-start; background: #fff; border: 1px solid #ddd; }
+  .sources { font-size: 0.75rem; color: #888; margin-top: 6px; }
+  footer { padding: 12px 20px; background: #fff; border-top: 1px solid #ddd; display: flex; gap: 8px; }
+  #input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
+  #send { padding: 8px 16px; background: #0070f3; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+  #send:disabled { background: #aaa; cursor: default; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PDF Bot</h1>
+  <label for="provider-select" style="font-size:0.85rem; color:#555">Backend:</label>
+  <select id="provider-select" style="padding:5px 8px; border-radius:4px; border:1px solid #ddd; font-size:0.85rem">
+    <option value="">-- Select a backend --</option>
+    <option value="ollama">Ollama (local)</option>
+    <option value="gemini">Gemini API</option>
+  </select>
+  <label id="file-label" class="disabled" for="file-input" style="opacity:0.5; cursor:not-allowed">Upload file</label>
+  <input id="file-input" type="file" accept=".pdf,.txt" disabled>
+  <span id="status">Select a backend to begin.</span>
+</header>
+
+<div id="chat"></div>
+
+<footer>
+  <input id="input" type="text" placeholder="Ask a question..." disabled>
+  <button id="send" disabled>Send</button>
+</footer>
+
+<script>
+  let source = null;
+  let currentProvider = null;
+
+  const fileInput = document.getElementById("file-input");
+  const fileLabel = document.getElementById("file-label");
+  const status    = document.getElementById("status");
+  const chat      = document.getElementById("chat");
+  const input     = document.getElementById("input");
+  const send      = document.getElementById("send");
+  const providerSelect = document.getElementById("provider-select");
+
+  // Enable file upload when backend is selected
+  providerSelect.addEventListener("change", () => {
+    const selectedProvider = providerSelect.value;
+    if (selectedProvider) {
+      fileInput.disabled = false;
+      fileLabel.classList.remove("disabled");
+      fileLabel.style.opacity = "1";
+      fileLabel.style.cursor = "pointer";
+      status.textContent = `Backend selected: ${selectedProvider === "ollama" ? "Ollama (local)" : "Gemini API"}. Ready to upload.`;
+    } else {
+      fileInput.disabled = true;
+      fileLabel.classList.add("disabled");
+      fileLabel.style.opacity = "0.5";
+      fileLabel.style.cursor = "not-allowed";
+      status.textContent = "Select a backend to begin.";
+    }
+  });
+
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    status.textContent = `Ingesting ${file.name}...`;
+    send.disabled = true;
+    input.disabled = true;
+
+    const form = new FormData();
+    form.append("file", file);
+    const provider = providerSelect.value;
+
+    try {
+      const res  = await fetch(`/ingest?provider=${provider}`, { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        const errorMsg = data.error || data.detail || "Ingest failed";
+        status.textContent = `Error: ${errorMsg}`;
+        send.disabled = false;
+        input.disabled = false;
+        return;
+      }
+      source = data.source;
+      currentProvider = provider;
+      status.textContent = `${file.name} — ${data.pages} page(s), ${data.chunks} chunk(s)`;
+      input.disabled = false;
+      send.disabled  = false;
+      input.focus();
+    } catch (err) {
+      status.textContent = `Error: ${err.message}`;
+    }
+  });
+
+  async function sendMessage() {
+    const query = input.value.trim();
+    if (!query || !source) return;
+    input.value = "";
+    send.disabled = true;
+
+    appendMsg(query, "user");
+
+    try {
+      const res  = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, source, provider: currentProvider }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        appendMsg(`Error: ${data.error || "Chat failed"}`, "bot");
+        send.disabled = false;
+        input.focus();
+        return;
+      }
+
+      let sourcesText = "";
+      if (data.chunks && data.chunks.length) {
+        sourcesText = "\n\nSources:\n" + data.chunks
+          .map(c => `  Page ${c.page}  (${c.similarity})  ${c.source.split("/").pop()}`)
+          .join("\n");
+      }
+      const providerText = data.provider ? `\n\n[Answered by: ${data.provider.charAt(0).toUpperCase() + data.provider.slice(1)}]` : "";
+      appendMsg(data.answer + sourcesText + providerText, "bot");
+    } catch (err) {
+      appendMsg(`Error: ${err.message}`, "bot");
+    }
+
+    send.disabled = false;
+    input.focus();
+  }
+
+  send.addEventListener("click", sendMessage);
+  input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+
+  function appendMsg(text, role) {
+    const div = document.createElement("div");
+    div.className = `msg ${role}`;
+    div.textContent = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+</script>
+</body>
+</html>

@@ -104,14 +104,13 @@ def embed_chunks(chunks: list[dict], provider: str = "ollama") -> None:   # ADD 
 
     if provider == "gemini":                                 # ADD branch
         genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-        embeddings = [
-            genai.embed_content(
-                model="models/gemini-embedding-2",
-                content=t,
-                task_type="retrieval_document",
-            )["embedding"]
-            for t in texts
-        ]
+        result = genai.embed_content(
+            model="models/gemini-embedding-2",
+            content=texts,
+            task_type="retrieval_document",
+        )
+            
+        embeddings = result["embedding"]
     else:
         response = ollama.embed(model="mxbai-embed-large", input=texts)
         embeddings = response["embeddings"]

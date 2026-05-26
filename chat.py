@@ -10,8 +10,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="PDF or TXT file")
     parser.add_argument(
-        "--provider", choices=["ollama", "gemini"], default="ollama",
-        help="Backend to use (default: ollama)"
+        "--provider", choices=["ollama", "gemini"], default="gemini",
+        help="Backend to use (default: gemini)"
     )
     args = parser.parse_args()
 

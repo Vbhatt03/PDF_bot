@@ -3,7 +3,8 @@
 import argparse
 from src.ingest import extract, chunk_pages, embed_chunks
 from src.query import ask
-
+from dotenv import load_dotenv
+load_dotenv()
 
 def main():
     parser = argparse.ArgumentParser()

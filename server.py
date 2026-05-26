@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from src.ingest import extract, chunk_pages, embed_chunks
 from src.query import ask
-
+load_dotenv()
 app = FastAPI()
 
 app.add_middleware(

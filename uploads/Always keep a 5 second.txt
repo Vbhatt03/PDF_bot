@@ -1,0 +1,33 @@
+**Always keep a 5  second buffer(hard-coded in the script). Make sure the hand/grip is in the center of the preview window for all the cases**
+
+Task 1: Hands/No hands
+
+
+
+Time Requirements: 20 seconds each for first 3 activities. Approx 640 frames with hands and 640 without hands. Per User. 
+
+Activities: 
+	1. Watching a video:40-45cm
+	3. Playing mobile game: 30-35cm
+	4. No hands(40 seconds).
+	
+
+Task 2: Grip
+
+
+Time Requirements: 10 seconds for all activates
+
+Activities: 35-40cm for all the objects. 
+
+Objects: Ball, Handbag, ID-Card, bottle, Mug.
+
+
+Task 3: Writing(Non automated timing).
+
+Distance: 40-45cm between board and sensor.
+
+Task 4: Hand Gestures(time for 10 seconds).
+
+Distance: 10-12 cm from sensor to segregate fingers properly.
+
+

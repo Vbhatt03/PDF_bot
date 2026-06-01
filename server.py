@@ -3,7 +3,6 @@ import sys
 import os
 import shutil
 import asyncio
-import tempfile
 from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File
@@ -19,12 +18,6 @@ try:
 except ImportError:
     HAS_OLLAMA = False
 
-def get_setup_script() -> str:
-    if getattr(sys, "frozen", False):
-        base = sys._MEIPASS
-    else:
-        base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, "setup_ollama.sh")
 app = FastAPI()
 
 app.add_middleware(
@@ -45,6 +38,7 @@ def index():
 
 @app.get("/setup/status")
 def setup_status():
+    """Check if Ollama is ready. Return ready=false with setup instructions if not."""
     ollama_bin = shutil.which("ollama") is not None
     models_ready = False
     if ollama_bin and HAS_OLLAMA:
@@ -61,28 +55,15 @@ def setup_status():
 
 @app.get("/setup/stream")
 async def setup_stream():
-    script = get_setup_script()
-
+    """Stream setup error message and instructions to the UI."""
     async def generate():
-        if not os.path.isfile(script):
-            yield "data: ERROR: setup_ollama.sh not found\n\n"
-            yield "data: __ERROR__\n\n"
-            return
-        os.chmod(script, 0o755)
-        process = await asyncio.create_subprocess_exec(
-            "bash", script,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-        )
-        async for line in process.stdout:
-            text = line.decode(errors="replace").rstrip()
-            if text:
-                yield f"data: {text}\n\n"
-        await process.wait()
-        if process.returncode == 0:
-            yield "data: __DONE__\n\n"
-        else:
-            yield f"data: __ERROR__ (exit code {process.returncode})\n\n"
+        yield "data: ERROR: Ollama is not installed or not available.\n\n"
+        yield "data: \n\n"
+        yield "data: To install Ollama, please run the setup script:\n\n"
+        yield "data:   bash setup_ollama.sh\n\n"
+        yield "data: \n\n"
+        yield "data: This script will download and install Ollama with the required models.\n\n"
+        yield "data: __ERROR__\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream", headers={
         "Cache-Control": "no-cache",
@@ -92,6 +73,11 @@ async def setup_stream():
 
 @app.post("/ingest")
 async def ingest(file: UploadFile = File(...), provider: str = "ollama"): 
+    if provider == "ollama" and not HAS_OLLAMA:
+        return JSONResponse({
+            "error": "Ollama is not installed. Please run: bash setup_ollama.sh"
+        }, status_code=500)
+    
     try:
         dest = UPLOAD_DIR / file.filename
         with dest.open("wb") as f:
@@ -107,7 +93,6 @@ async def ingest(file: UploadFile = File(...), provider: str = "ollama"):
 
 
 @app.post("/chat")
-@app.post("/chat")
 async def chat(payload: dict):
     query = payload.get("query", "").strip()
     source = payload.get("source")       # can be str, list, or None
@@ -116,4 +101,10 @@ async def chat(payload: dict):
         return JSONResponse({"error": "query is required"}, status_code=400)
     if not source:
         return JSONResponse({"error": "source is required"}, status_code=400)
+    
+    if provider == "ollama" and not HAS_OLLAMA:
+        return JSONResponse({
+            "error": "Ollama is not installed. Please run: bash setup_ollama.sh"
+        }, status_code=500)
+    
     return ask(query, source=source, provider=provider)

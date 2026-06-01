@@ -4,32 +4,27 @@ import argparse
 import sys
 import os
 import shutil
-import subprocess
 from src.ingest import extract, chunk_pages, embed_chunks
 from src.query import ask
 from dotenv import load_dotenv
 load_dotenv()
 
-def ensure_ollama():
-    """If ollama is not installed, find the bundled setup script and run it."""
-    if shutil.which("ollama") is not None:
-        return  # already installed, nothing to do
+try:
+    import ollama as _ollama
+    HAS_OLLAMA = True
+except ImportError:
+    HAS_OLLAMA = False
 
-    # Resolve path to the bundled script
-    if getattr(sys, "frozen", False):          # running as PyInstaller exe
-        base = sys._MEIPASS
-    else:                                       # running from source
-        base = os.path.dirname(os.path.abspath(__file__))
-
-    script = os.path.join(base, "setup_ollama.sh")
-
-    if not os.path.isfile(script):
-        print("Warning: setup_ollama.sh not bundled; cannot auto-install Ollama.")
-        return
-
-    print("Ollama not found. Running setup script (this may take a few minutes)...")
-    os.chmod(script, 0o755)
-    subprocess.run(["bash", script], check=True)
+def check_ollama():
+    """Check if ollama is installed (both binary and Python module). If not, show error message and instructions."""
+    ollama_bin = shutil.which("ollama") is not None
+    
+    if not ollama_bin or not HAS_OLLAMA:
+        print("ERROR: Ollama is not installed or not available.")
+        print("\nTo install Ollama, please run the setup script:")
+        print("  bash setup_ollama.sh")
+        print("\nThis script will download and install Ollama with the required models.")
+        sys.exit(1)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -41,7 +36,7 @@ def main():
     args = parser.parse_args()
 
     if args.provider == "ollama":
-        ensure_ollama()
+        check_ollama()
 
     print(f"Using provider: {args.provider}")
     sources = []

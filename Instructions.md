@@ -15,3 +15,7 @@
 2. copy the contents of .env.example file
 3. create a new gemini api key from https://aistudio.google.com/api-keys?project=gen-lang-client-0085148177
 4. paste it in the .env file.
+
+**TO BUILD YOUR OWN EXECUTABLE**
+1. pyinstaller chat.spec
+2. Upon completion you will find your executable file in PDF_bot/dist/

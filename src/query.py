@@ -64,7 +64,7 @@ def retrieve_chunks(query_embedding, k=6, source=None, provider="ollama"):
         results["distances"][0],
     ):
         similarity = 1 - distance
-        if source or similarity >= SIMILARITY_THRESHOLD:
+        if similarity >= SIMILARITY_THRESHOLD:
             chunks.append({
                 "text": text,
                 "source": metadata["source"],
@@ -81,8 +81,9 @@ def build_prompt(query: str, chunks: list[dict]) -> str:
     """
     context_blocks = []
     for i, chunk in enumerate(chunks, start=1):
+        filename = chunk['source'].split('/')[-1]
         context_blocks.append(
-            f"--- chunk {i} (Page {chunk['page']}) ---\n{chunk['text']}"
+            f"--- chunk {i} (File: {filename}, Page {chunk['page']}) ---\n{chunk['text']}"
         )
 
     context = "\n\n".join(context_blocks)

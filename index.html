@@ -35,7 +35,7 @@
     <option value="gemini">Gemini API</option>
   </select>
   <label id="file-label" class="disabled" for="file-input" style="opacity:0.5; cursor:not-allowed">Upload file</label>
-  <input id="file-input" type="file" accept=".pdf,.txt" disabled>
+  <input id="file-input" type="file" accept=".pdf,.txt,.csv" multiple disabled>
   <span id="status">Select a backend to begin.</span>
 </header>
 
@@ -77,35 +77,37 @@
   });
 
   fileInput.addEventListener("change", async () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    status.textContent = `Ingesting ${file.name}...`;
+    const files = Array.from(fileInput.files);
+    if (!files.length) return;
+
     send.disabled = true;
     input.disabled = true;
-
-    const form = new FormData();
-    form.append("file", file);
     const provider = providerSelect.value;
 
-    try {
-      const res  = await fetch(`/ingest?provider=${provider}`, { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) {
-        const errorMsg = data.error || data.detail || "Ingest failed";
-        status.textContent = `Error: ${errorMsg}`;
-        send.disabled = false;
-        input.disabled = false;
-        return;
+    for (const file of files) {
+      status.textContent = `Ingesting ${file.name}...`;
+      const form = new FormData();
+      form.append("file", file);
+
+      try {
+        const res  = await fetch(`/ingest?provider=${provider}`, { method: "POST", body: form });
+        const data = await res.json();
+        if (!res.ok) {
+          status.textContent = `Error ingesting ${file.name}: ${data.error || data.detail || "Ingest failed"}`;
+          continue;
+        }
+        sources.push(data.source);
+        currentProvider = provider;
+        status.textContent = `${sources.length} file(s) loaded...`;
+      } catch (err) {
+        status.textContent = `Error: ${err.message}`;
       }
-      sources.push(data.source);  
-      currentProvider = provider;
-      status.textContent = `${sources.length} file(s) loaded. Ready to chat.`;
-      input.disabled = false;
-      send.disabled  = false;
-      input.focus();
-    } catch (err) {
-      status.textContent = `Error: ${err.message}`;
     }
+
+    status.textContent = `${sources.length} file(s) loaded. Ready to chat.`;
+    input.disabled = false;
+    send.disabled  = false;
+    input.focus();
   });
 
   async function sendMessage() {

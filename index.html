@@ -22,7 +22,13 @@
   #input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
   #send { padding: 8px 16px; background: #0070f3; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
   #send:disabled { background: #aaa; cursor: default; }
+  .msg table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+  .msg th, .msg td { border: 1px solid #ddd; padding: 6px 10px; font-size: 0.85rem; }
+  .msg th { background: #f0f0f0; font-weight: 600; }
+  .chart-wrap { width: 100%; max-width: 500px; margin-top: 12px; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -49,6 +55,30 @@
 <script>
   let sources = [];
   let currentProvider = null;
+  let chartCounter = 0;
+
+  // Configure marked with custom renderer for charts
+  const renderer = new marked.Renderer();
+  renderer.code = function({ text, lang }) {
+    const code = text;
+    if (lang === 'chart') {
+      const id = `chart-${chartCounter++}`;
+      setTimeout(() => {
+        try {
+          const cfg = JSON.parse(code);
+          const ctx = document.getElementById(id);
+          if (ctx) new Chart(ctx, {
+            type: cfg.type,
+            data: { labels: cfg.labels, datasets: cfg.datasets },
+            options: { responsive: true, plugins: { title: { display: !!cfg.title, text: cfg.title }}}
+          });
+        } catch(e) { console.warn('Chart render failed', e); }
+      }, 0);
+      return `<div class="chart-wrap"><canvas id="${id}"></canvas></div>`;
+    }
+    return `<pre><code>${code}</code></pre>`;
+  };
+  marked.use({ renderer });
 
   const fileInput = document.getElementById("file-input");
   const fileLabel = document.getElementById("file-label");
@@ -155,7 +185,11 @@
   function appendMsg(text, role) {
     const div = document.createElement("div");
     div.className = `msg ${role}`;
-    div.textContent = text;
+    if (role === "bot") {
+      div.innerHTML = marked.parse(text);
+    } else {
+      div.textContent = text;
+    }
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
   }

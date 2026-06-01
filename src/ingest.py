@@ -37,21 +37,31 @@ def extract_txt(txt_path: str) -> list[dict]:
     return [{"page": 1, "text": text}] if text.strip() else []
 
 def extract_csv(csv_path: str, rows_per_page: int = 50) -> list[dict]:
-    """Extract text from a CSV file. Groups rows_per_page rows into each 'page'."""
+    """Extract text from a CSV file. Formats as markdown table for efficiency."""
     import csv
     pages = []
     with open(csv_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
-
+    
+    if not rows:
+        return pages
+    
+    headers = list(rows[0].keys())
+    
     for i in range(0, len(rows), rows_per_page):
         batch = rows[i:i + rows_per_page]
-        lines = []
+        
+        # Build markdown table
+        md = "| " + " | ".join(headers) + " |\n"
+        md += "| " + " | ".join(["---"] * len(headers)) + " |\n"
         for row in batch:
-            lines.append(", ".join(f"{k}: {v}" for k, v in row.items()))
-        text = "\n".join(lines)
-        if text.strip():
-            pages.append({"page": i // rows_per_page + 1, "text": text})
+            values = [str(row.get(h, "")).strip()[:50] for h in headers]  # truncate long cells
+            md += "| " + " | ".join(values) + " |\n"
+        
+        if md.strip():
+            pages.append({"page": i // rows_per_page + 1, "text": md})
+    
     return pages
 
 def extract_pdf_ocr(pdf_path: str) -> list[dict]:

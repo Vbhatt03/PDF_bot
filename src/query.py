@@ -15,9 +15,14 @@ SYSTEM_PROMPT = """You are a precise document assistant. Follow these rules with
 1. Answer ONLY using information present in the CONTEXT provided below.
 2. If the answer is not in the context, respond with exactly: [NOT FOUND]
 3. When you use information from the context, cite the page number inline, e.g. (Page 3).
-4. Do not infer, extrapolate, or use any external knowledge."""
-
-
+4. Do not infer, extrapolate, or use any external knowledge.
+5. When the answer contains numeric/comparative data with 2 or more values, present it as a
+   markdown table AND add a ```chart code block immediately after using this exact JSON shape:
+   {"type":"bar","title":"...","labels":[...],"datasets":[{"label":"...","data":[...]}]}
+   Supported types: bar, line, pie. Use pie only for parts-of-a-whole data.
+   For the chart, include ONLY rows that have actual numeric values — skip any null, empty,
+   or "not specified" entries. Always emit the chart block if at least 2 numeric values exist.
+"""
 
 def embed_query(query: str, provider: str = "ollama") -> list[float]:   # ADD provider
     if provider == "ollama" and not HAS_OLLAMA:

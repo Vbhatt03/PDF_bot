@@ -1,19 +1,47 @@
 #!/usr/bin/env python3
 # chat.py
 import argparse
+import sys
+import os
+import shutil
+import subprocess
 from src.ingest import extract, chunk_pages, embed_chunks
 from src.query import ask
 from dotenv import load_dotenv
 load_dotenv()
 
+def ensure_ollama():
+    """If ollama is not installed, find the bundled setup script and run it."""
+    if shutil.which("ollama") is not None:
+        return  # already installed, nothing to do
+
+    # Resolve path to the bundled script
+    if getattr(sys, "frozen", False):          # running as PyInstaller exe
+        base = sys._MEIPASS
+    else:                                       # running from source
+        base = os.path.dirname(os.path.abspath(__file__))
+
+    script = os.path.join(base, "setup_ollama.sh")
+
+    if not os.path.isfile(script):
+        print("Warning: setup_ollama.sh not bundled; cannot auto-install Ollama.")
+        return
+
+    print("Ollama not found. Running setup script (this may take a few minutes)...")
+    os.chmod(script, 0o755)
+    subprocess.run(["bash", script], check=True)
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("file", help="PDF or TXT file")
+    parser.add_argument("file", help="PDF or TXT or CSV file")
     parser.add_argument(
         "--provider", choices=["ollama", "gemini"], default="gemini",
         help="Backend to use (default: gemini)"
     )
     args = parser.parse_args()
+
+    if args.provider == "ollama":
+        ensure_ollama()
 
     print(f"Using provider: {args.provider}")
     print(f"Ingesting {args.file}...")

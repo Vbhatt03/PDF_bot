@@ -3,3 +3,13 @@
 __pycache__/
 chroma_db/
 uploads/
+*.sh
+build/chat
+dist/
+chat.spec
+chatbot
+chatbot copy
+*.zip
+*.pdf
+*.csv
+*.ods

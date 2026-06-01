@@ -2,7 +2,7 @@
 
 **TO RUN THE CLI APP**
 
-1. Run the executable file with: ./chatbot file1.pdf file2.txt file3.csv --provider ollama/gemini
+1. Run the executable file with: ./PDF_chatbot_app_final file1.pdf file2.txt file3.csv --provider ollama/gemini
 
 **TO RUN THE UI**
 1.  uvicorn server:app --reload

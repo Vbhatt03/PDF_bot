@@ -5,7 +5,6 @@ chroma_db/
 uploads/
 build/chat
 dist/
-chat.spec
 chatbot
 chatbot copy
 PDF_chatbot_app

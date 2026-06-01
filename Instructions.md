@@ -1,3 +1,11 @@
-1. Run the bash script to install and run ollama server: bash setup_ollama.sh
-2. Run the executable file with: ./chatbot <name_of_file.pdf/.txt> --provider ollama
-3. Chat with the bot.
+**TO RUN THE CLI APP**
+
+1. Run the executable file with: ./chatbot file1.pdf file2.txt file3.csv --provider ollama/gemini
+
+**TO RUN THE UI**
+1.  uvicorn server:app --reload
+
+**TO RUN THE CLI WITHOUT THE CHATBOT APP**
+1. python3 chat.py file1.pdf file2.csv file3.txt --provider ollama/gemini
+
+

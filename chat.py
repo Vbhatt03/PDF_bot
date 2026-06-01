@@ -33,7 +33,7 @@ def ensure_ollama():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("file", help="PDF or TXT or CSV file")
+    parser.add_argument("files", nargs="+", help="One or more PDF/TXT/CSV files")
     parser.add_argument(
         "--provider", choices=["ollama", "gemini"], default="gemini",
         help="Backend to use (default: gemini)"
@@ -44,12 +44,15 @@ def main():
         ensure_ollama()
 
     print(f"Using provider: {args.provider}")
-    print(f"Ingesting {args.file}...")
-    pages = extract(args.file)
-    print(f"Extracted {len(pages)} page(s).")
-    chunks = chunk_pages(pages)
-    print(f"Produced {len(chunks)} chunk(s).")
-    embed_chunks(chunks, provider=args.provider)
+    sources = []
+    for f in args.files:
+        print(f"Ingesting {f}...")
+        pages = extract(f)
+        print(f"  Extracted {len(pages)} page(s).")
+        chunks = chunk_pages(pages)
+        print(f"  Produced {len(chunks)} chunk(s).")
+        embed_chunks(chunks, provider=args.provider)
+        sources.append(f)
     print("Ingestion complete.\n")
 
     print("Chat with your document. Type 'exit' to quit.\n")
@@ -60,7 +63,7 @@ def main():
             break
         if not query:
             continue
-        result = ask(query, source=args.file, provider=args.provider)
+        result = ask(query, source=sources, provider=args.provider)
         print(f"\nBot: {result['answer']}\n")
         if result["chunks"]:
             print("Sources:")

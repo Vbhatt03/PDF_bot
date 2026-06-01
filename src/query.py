@@ -38,10 +38,18 @@ def embed_query(query: str, provider: str = "ollama") -> list[float]:   # ADD pr
     response = ollama.embed(model="mxbai-embed-large", input=query)
     return response["embeddings"][0]
 
-def retrieve_chunks(query_embedding: list[float], k: int = 6,
-                    source: str = None, provider: str = "ollama") -> list[dict]:  # ADD provider
-    collection = get_collection(provider)                    # PASS provider
-    where_filter = {"source": source} if source else None
+def retrieve_chunks(query_embedding, k=6, source=None, provider="ollama"):
+    collection = get_collection(provider)
+
+    if isinstance(source, list) and len(source) > 1:
+        where_filter = {"source": {"$in": source}}
+    elif isinstance(source, str) and source:
+        where_filter = {"source": source}
+    elif isinstance(source, list) and len(source) == 1:
+        where_filter = {"source": source[0]}
+    else:
+        where_filter = None  # search across all ingested docs
+
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=k,
@@ -81,8 +89,8 @@ def build_prompt(query: str, chunks: list[dict]) -> str:
 
     return f"CONTEXT:\n{context}\n\nQUESTION:\n{query}"
 
-def ask(query: str, source: str = None, provider: str = "ollama") -> dict:   # ADD provider
-    chunks = retrieve_chunks(embed_query(query, provider), source=source, provider=provider)  # PASS
+def ask(query: str, source=None, provider: str = "ollama") -> dict:
+    chunks = retrieve_chunks(embed_query(query, provider), source=source, provider=provider)
     if not chunks:
         return {"answer": "[NOT FOUND]", "chunks": [], "provider": provider}
 

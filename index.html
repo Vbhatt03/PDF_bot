@@ -47,7 +47,7 @@
 </footer>
 
 <script>
-  let source = null;
+  let sources = [];
   let currentProvider = null;
 
   const fileInput = document.getElementById("file-input");
@@ -97,9 +97,9 @@
         input.disabled = false;
         return;
       }
-      source = data.source;
+      sources.push(data.source);  
       currentProvider = provider;
-      status.textContent = `${file.name} — ${data.pages} page(s), ${data.chunks} chunk(s)`;
+      status.textContent = `${sources.length} file(s) loaded. Ready to chat.`;
       input.disabled = false;
       send.disabled  = false;
       input.focus();
@@ -110,7 +110,7 @@
 
   async function sendMessage() {
     const query = input.value.trim();
-    if (!query || !source) return;
+    if (!query || !sources.length) return;
     input.value = "";
     send.disabled = true;
 
@@ -120,7 +120,7 @@
       const res  = await fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, source, provider: currentProvider }),
+        body: JSON.stringify({ query, source: sources, provider: currentProvider }),
       });
       const data = await res.json();
 

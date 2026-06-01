@@ -44,15 +44,13 @@ async def ingest(file: UploadFile = File(...), provider: str = "ollama"):
 
 
 @app.post("/chat")
+@app.post("/chat")
 async def chat(payload: dict):
-    try:
-        query = payload.get("query", "").strip()
-        source = payload.get("source", "")
-        provider = payload.get("provider", "ollama")
-        if not query or not source:
-            return JSONResponse({"error": "query and source are required"}, status_code=400)
-        return ask(query, source=source, provider=provider)
-    except RuntimeError as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
-    except Exception as e:
-        return JSONResponse({"error": f"Chat failed: {str(e)}"}, status_code=500)
+    query = payload.get("query", "").strip()
+    source = payload.get("source")       # can be str, list, or None
+    provider = payload.get("provider", "ollama")
+    if not query:
+        return JSONResponse({"error": "query is required"}, status_code=400)
+    if not source:
+        return JSONResponse({"error": "source is required"}, status_code=400)
+    return ask(query, source=source, provider=provider)

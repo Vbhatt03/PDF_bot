@@ -9,6 +9,7 @@ dist/
 chat.spec
 chatbot
 chatbot copy
+PDF_chatbot_app
 *.zip
 *.pdf
 *.csv

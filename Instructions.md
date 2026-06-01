@@ -1,3 +1,5 @@
+**AFTER INSTALLING ALL REQUIRED DEPENDENCIES USING pip install -r requirements.txt in a new python virtual env**
+
 **TO RUN THE CLI APP**
 
 1. Run the executable file with: ./chatbot file1.pdf file2.txt file3.csv --provider ollama/gemini

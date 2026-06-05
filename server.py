@@ -80,7 +80,7 @@ async def ingest(file: UploadFile = File(...), provider: str = "ollama"):
     
     try:
         dest = UPLOAD_DIR / file.filename
-        ALLOWED_EXTENSIONS = {".pdf", ".txt", ".csv", ".glb"}
+        ALLOWED_EXTENSIONS = {".pdf", ".txt", ".csv", ".glb",".stl"}
         if Path(file.filename).suffix.lower() not in ALLOWED_EXTENSIONS:
             return JSONResponse(
                 {"error": f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"},

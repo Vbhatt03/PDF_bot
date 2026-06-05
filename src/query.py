@@ -29,6 +29,8 @@ SYSTEM_PROMPT = """You are a precise document and 3D model assistant. Follow the
    - "Animations" pages list animation clip names and which object properties they drive.
    - "Dimensions" pages report per-mesh bounding box sizes in model units (not real-world units
      unless the file author set a specific scale). Width=X axis, Height=Y axis, Depth=Z axis.
+   - "STL Model Info" pages report the mesh name (from the header), format (ASCII/binary), and triangle count.
+   - STL files have no materials, hierarchy, or animations — only geometry and dimensions are available.
 """
 
 def embed_query(query: str, provider: str = "ollama") -> list[float]:   # ADD provider

@@ -252,6 +252,60 @@ def extract_glb(glb_path: str) -> list[dict]:
 
     return pages
 
+def extract_stl(stl_path: str) -> list[dict]:
+    """Parse an STL file and return structured text pages."""
+    from stl import mesh as stl_mesh
+    import numpy as np
+
+    m = stl_mesh.Mesh.from_file(stl_path)
+
+    pages = []
+
+    # ── Page 1: Header / Object Name ─────────────────────────────────────────
+    # Binary STL has an 80-byte header; ASCII STL has a 'solid <name>' line
+    with open(stl_path, "rb") as _fh:
+        _raw = _fh.read(80)
+    is_binary = _raw[:5] != b"solid"
+    if is_binary:
+        header = _raw.rstrip(b"\x00").decode("latin-1").strip()
+        name = header if header else "Unnamed"
+        fmt = "binary"
+    else:
+        first_line = _raw.decode("latin-1").split("\n")[0].strip()
+        name = first_line[6:].strip() if first_line.lower().startswith("solid") else "Unnamed"
+        fmt = "ASCII"
+    pages.append({"page": 1, "text": f"STL Model Info:\n  name={name}\n  format={fmt}\n  triangles={len(m.vectors)}"})
+
+    # ── Page 2: Dimensions ────────────────────────────────────────────────────
+    verts = m.vectors.reshape(-1, 3)
+    mn = verts.min(axis=0)
+    mx = verts.max(axis=0)
+    w = mx[0] - mn[0]
+    h = mx[1] - mn[1]
+    d = mx[2] - mn[2]
+    cx, cy, cz = (mn + mx) / 2
+    pages.append({"page": 2, "text": (
+        f"Dimensions (model units):\n"
+        f"  width={w:.4f}, height={h:.4f}, depth={d:.4f}\n"
+        f"  min=({mn[0]:.4f}, {mn[1]:.4f}, {mn[2]:.4f})\n"
+        f"  max=({mx[0]:.4f}, {mx[1]:.4f}, {mx[2]:.4f})\n"
+        f"  center=({cx:.4f}, {cy:.4f}, {cz:.4f})"
+    )})
+
+    # ── Page 3: Mesh Statistics ───────────────────────────────────────────────
+    areas = np.sqrt(np.sum(np.cross(
+        m.vectors[:, 1] - m.vectors[:, 0],
+        m.vectors[:, 2] - m.vectors[:, 0]
+    ) ** 2, axis=1)) / 2
+    surface_area = float(areas.sum())
+    pages.append({"page": 3, "text": (
+        f"Mesh Statistics:\n"
+        f"  triangles={len(m.vectors)}\n"
+        f"  surface_area={surface_area:.4f} [model units²]"
+    )})
+
+    return pages
+
 def extract(file_path: str) -> list[dict]:
     """
     Unified entry point. Dispatches to PDF or TXT extractor based on extension.
@@ -276,6 +330,8 @@ def extract(file_path: str) -> list[dict]:
         pages = extract_csv(file_path)
     elif file_path.lower().endswith(".glb"):
         pages = extract_glb(file_path)
+    elif file_path.lower().endswith(".stl"):
+        pages = extract_stl(file_path)
     else:
         raise ValueError(f"Unsupported file type: {file_path}")
 

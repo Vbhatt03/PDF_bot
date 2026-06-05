@@ -13,3 +13,5 @@ PDF_chatbot_app
 *.csv
 *.ods
 PDF_chatbot_app_final
+*.stl
+*.glb

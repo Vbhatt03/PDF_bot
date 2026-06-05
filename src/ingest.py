@@ -119,11 +119,25 @@ def extract_pdf_ocr(pdf_path: str) -> list[dict]:
 
 
 def extract_glb(glb_path: str) -> list[dict]:
-    """Parse a GLB file and return structured text pages for each metadata category."""
+    """Parse a GLB/GLTF file and return structured text pages for each metadata category."""
     from pygltflib import GLTF2
     import struct, base64
 
-    gltf = GLTF2().load(glb_path)
+    # Read raw bytes once — avoids extension-based dispatch and text-mode encoding issues
+    with open(glb_path, "rb") as _fh:
+        _raw = _fh.read()
+
+    if _raw[:4] == b"glTF":
+        # Standard binary GLB container
+        gltf = GLTF2.load_from_bytes(_raw)
+    else:
+        # JSON-based GLTF (text), possibly with UTF-8 BOM
+        try:
+            _text = _raw.decode("utf-8-sig")   # strips BOM if present
+        except UnicodeDecodeError:
+            _text = _raw.decode("latin-1")     # fallback for non-UTF-8 text
+        gltf = GLTF2.gltf_from_json(_text)
+        gltf.filename = glb_path
 
     pages = []
 

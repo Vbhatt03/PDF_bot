@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF Bot</title>
+<title>Doc & 3D Bot</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f5f5f5; }
@@ -38,7 +38,7 @@
 <body>
 
 <header>
-  <h1>PDF Bot</h1>
+  <h1>Doc & 3D Bot</h1>
   <label for="provider-select" style="font-size:0.85rem; color:#555">Backend:</label>
   <select id="provider-select" style="padding:5px 8px; border-radius:4px; border:1px solid #ddd; font-size:0.85rem">
     <option value="">-- Select a backend --</option>
@@ -46,7 +46,7 @@
     <option value="gemini">Gemini API</option>
   </select>
   <label id="file-label" class="disabled" for="file-input" style="opacity:0.5; cursor:not-allowed">Upload file</label>
-  <input id="file-input" type="file" accept=".pdf,.txt,.csv" multiple disabled>
+  <input id="file-input" type="file" accept=".pdf,.txt,.csv,.glb,model/gltf+binary,application/octet-stream" multiple disabled>
   <span id="status">Select a backend to begin.</span>
 </header>
 
@@ -58,7 +58,7 @@
 <div id="chat"></div>
 
 <footer>
-  <input id="input" type="text" placeholder="Ask a question..." disabled>
+  <input id="input" type="text" placeholder="Ask about your document or 3D model..." disabled>
   <button id="send" disabled>Send</button>
 </footer>
 

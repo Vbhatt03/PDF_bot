@@ -11,7 +11,7 @@ except ImportError:
 
 SIMILARITY_THRESHOLD = 0.4
 
-SYSTEM_PROMPT = """You are a precise document assistant. Follow these rules without exception:
+SYSTEM_PROMPT = """You are a precise document and 3D model assistant. Follow these rules without exception:
 1. Answer ONLY using information present in the CONTEXT provided below.
 2. If the answer is not in the context, respond with exactly: [NOT FOUND]
 3. When you use information from the context, cite the page number inline, e.g. (Page 3).
@@ -22,6 +22,13 @@ SYSTEM_PROMPT = """You are a precise document assistant. Follow these rules with
    Supported types: bar, line, pie. Use pie only for parts-of-a-whole data.
    For the chart, include ONLY rows that have actual numeric values — skip any null, empty,
    or "not specified" entries. Always emit the chart block if at least 2 numeric values exist.
+6. For 3D model context pages:
+   - "Scene Hierarchy" pages describe the parent-child tree of objects in the scene.
+   - "Objects (Nodes)" pages list every object with its type (Mesh, Camera, Empty, etc.).
+   - "Materials" pages list material names and PBR properties (baseColor, metallic, roughness).
+   - "Animations" pages list animation clip names and which object properties they drive.
+   - "Dimensions" pages report per-mesh bounding box sizes in model units (not real-world units
+     unless the file author set a specific scale). Width=X axis, Height=Y axis, Depth=Z axis.
 """
 
 def embed_query(query: str, provider: str = "ollama") -> list[float]:   # ADD provider

@@ -10,3 +10,4 @@ pdfplumber
 pytesseract
 pdf2image
 Pillow
+pygltflib>=1.16

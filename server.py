@@ -80,6 +80,12 @@ async def ingest(file: UploadFile = File(...), provider: str = "ollama"):
     
     try:
         dest = UPLOAD_DIR / file.filename
+        ALLOWED_EXTENSIONS = {".pdf", ".txt", ".csv", ".glb"}
+        if Path(file.filename).suffix.lower() not in ALLOWED_EXTENSIONS:
+            return JSONResponse(
+                {"error": f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"},
+                status_code=400,
+            )
         with dest.open("wb") as f:
             shutil.copyfileobj(file.file, f)
         pages = extract(str(dest))

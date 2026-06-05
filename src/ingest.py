@@ -117,6 +117,127 @@ def extract_pdf_ocr(pdf_path: str) -> list[dict]:
 
     return pages
 
+
+def extract_glb(glb_path: str) -> list[dict]:
+    """Parse a GLB file and return structured text pages for each metadata category."""
+    from pygltflib import GLTF2
+    import struct, base64
+
+    gltf = GLTF2().load(glb_path)
+
+    pages = []
+
+    # ── Page 1: Scene Hierarchy ───────────────────────────────────────────────
+    def node_name(idx: int) -> str:
+        n = gltf.nodes[idx]
+        return n.name if n.name else f"Node_{idx}"
+
+    def build_tree(idx: int, depth: int = 0) -> list[str]:
+        lines = ["  " * depth + f"- {node_name(idx)}"]
+        node = gltf.nodes[idx]
+        for child_idx in (node.children or []):
+            lines.extend(build_tree(child_idx, depth + 1))
+        return lines
+
+    if gltf.scenes:
+        scene = gltf.scenes[gltf.scene if gltf.scene is not None else 0]
+        scene_name = scene.name if scene.name else "Scene"
+        tree_lines = [f"Scene: {scene_name}"]
+        for root_idx in (scene.nodes or []):
+            tree_lines.extend(build_tree(root_idx))
+        pages.append({"page": 1, "text": "Scene Hierarchy:\n" + "\n".join(tree_lines)})
+
+    # ── Page 2: Object / Node Names ──────────────────────────────────────────
+    object_lines = []
+    for i, node in enumerate(gltf.nodes or []):
+        name = node.name if node.name else f"Node_{i}"
+        kind = "Empty"
+        if node.mesh is not None:
+            mesh_name = gltf.meshes[node.mesh].name or f"Mesh_{node.mesh}"
+            kind = f"Mesh ({mesh_name})"
+        elif node.camera is not None:
+            kind = "Camera"
+        elif node.skin is not None:
+            kind = "Skinned Mesh"
+        object_lines.append(f"  {name}: {kind}")
+    if object_lines:
+        pages.append({"page": 2, "text": "Objects (Nodes):\n" + "\n".join(object_lines)})
+
+    # ── Page 3: Materials ─────────────────────────────────────────────────────
+    mat_lines = []
+    for i, mat in enumerate(gltf.materials or []):
+        name = mat.name if mat.name else f"Material_{i}"
+        props = [f"name={name}"]
+        pbr = mat.pbrMetallicRoughness
+        if pbr:
+            if pbr.baseColorFactor:
+                r, g, b, a = pbr.baseColorFactor
+                props.append(f"baseColor=rgba({r:.2f},{g:.2f},{b:.2f},{a:.2f})")
+            if pbr.metallicFactor is not None:
+                props.append(f"metallic={pbr.metallicFactor:.2f}")
+            if pbr.roughnessFactor is not None:
+                props.append(f"roughness={pbr.roughnessFactor:.2f}")
+        if mat.alphaMode:
+            props.append(f"alphaMode={mat.alphaMode}")
+        if mat.doubleSided:
+            props.append("doubleSided=true")
+        mat_lines.append("  " + ", ".join(props))
+    if mat_lines:
+        pages.append({"page": 3, "text": "Materials:\n" + "\n".join(mat_lines)})
+
+    # ── Page 4: Animations ────────────────────────────────────────────────────
+    anim_lines = []
+    for i, anim in enumerate(gltf.animations or []):
+        name = anim.name if anim.name else f"Animation_{i}"
+        targets = []
+        for ch in (anim.channels or []):
+            target_node_idx = ch.target.node
+            target_name = node_name(target_node_idx) if target_node_idx is not None else "?"
+            targets.append(f"{target_name}.{ch.target.path}")
+        anim_lines.append(f"  {name}: targets=[{', '.join(targets)}]")
+    if anim_lines:
+        pages.append({"page": 4, "text": "Animations:\n" + "\n".join(anim_lines)})
+    else:
+        pages.append({"page": 4, "text": "Animations: none"})
+
+    # ── Page 5: Dimensions (bounding boxes per mesh) ─────────────────────────
+    def read_accessor_min_max(accessor):
+        """Return (min_xyz, max_xyz) from accessor metadata — no buffer decode needed."""
+        if accessor.min and accessor.max:
+            return accessor.min, accessor.max
+        return None, None
+
+    dim_lines = []
+    for mesh_idx, mesh in enumerate(gltf.meshes or []):
+        mesh_name = mesh.name if mesh.name else f"Mesh_{mesh_idx}"
+        agg_min = [float("inf")] * 3
+        agg_max = [float("-inf")] * 3
+        has_data = False
+        for prim in (mesh.primitives or []):
+            if prim.attributes.POSITION is None:
+                continue
+            accessor = gltf.accessors[prim.attributes.POSITION]
+            mn, mx = read_accessor_min_max(accessor)
+            if mn and mx:
+                agg_min = [min(agg_min[j], mn[j]) for j in range(3)]
+                agg_max = [max(agg_max[j], mx[j]) for j in range(3)]
+                has_data = True
+        if has_data:
+            w = agg_max[0] - agg_min[0]
+            h = agg_max[1] - agg_min[1]
+            d = agg_max[2] - agg_min[2]
+            cx = (agg_min[0] + agg_max[0]) / 2
+            cy = (agg_min[1] + agg_max[1]) / 2
+            cz = (agg_min[2] + agg_max[2]) / 2
+            dim_lines.append(
+                f"  {mesh_name}: width={w:.4f}, height={h:.4f}, depth={d:.4f} "
+                f"| center=({cx:.4f}, {cy:.4f}, {cz:.4f}) [model units]"
+            )
+    if dim_lines:
+        pages.append({"page": 5, "text": "Dimensions (per mesh, model units):\n" + "\n".join(dim_lines)})
+
+    return pages
+
 def extract(file_path: str) -> list[dict]:
     """
     Unified entry point. Dispatches to PDF or TXT extractor based on extension.
@@ -139,6 +260,8 @@ def extract(file_path: str) -> list[dict]:
         pages = extract_txt(file_path)
     elif file_path.lower().endswith(".csv"):
         pages = extract_csv(file_path)
+    elif file_path.lower().endswith(".glb"):
+        pages = extract_glb(file_path)
     else:
         raise ValueError(f"Unsupported file type: {file_path}")
 

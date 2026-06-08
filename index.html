@@ -47,6 +47,7 @@
   </select>
   <label id="file-label" class="disabled" for="file-input" style="opacity:0.5; cursor:not-allowed">Upload file</label>
   <input id="file-input" type="file" accept=".pdf,.txt,.csv,.glb,.stl,model/gltf+binary,application/octet-stream" multiple disabled>
+  <button id="tokens-btn" style="padding:6px 12px; background:#f0ad4e; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:0.85rem; display:none" onclick="showTokenUsage()">📊 Token Usage</button>
   <span id="status">Select a backend to begin.</span>
 </header>
 
@@ -172,15 +173,19 @@
   // Enable file upload when backend is selected
   providerSelect.addEventListener("change", () => {
     const selectedProvider = providerSelect.value;
+    const tokensBtn = document.getElementById("tokens-btn");
     setupPanel.style.display = "none";
     if (selectedProvider === "ollama") {
       checkOllamaSetup();
+      tokensBtn.style.display = "none";
     } else if (selectedProvider === "gemini") {
       enableUpload();
       status.textContent = "Gemini API selected. Ready to upload.";
+      tokensBtn.style.display = "inline-block";
     } else {
       disableUpload();
       status.textContent = "Select a backend to begin.";
+      tokensBtn.style.display = "none";
     }
   });
 
@@ -259,6 +264,21 @@
 
   send.addEventListener("click", sendMessage);
   input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+
+  async function showTokenUsage() {
+    try {
+      const res = await fetch('/tokens/summary?provider=gemini');
+      if (!res.ok) {
+        alert('Token tracking is only available for Gemini provider');
+        return;
+      }
+      const data = await res.json();
+      alert(data.summary);
+    } catch (error) {
+      console.error('Failed to fetch token usage:', error);
+      alert('Failed to fetch token usage: ' + error.message);
+    }
+  }
 
   function appendMsg(text, role) {
     const div = document.createElement("div");

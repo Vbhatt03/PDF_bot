@@ -1,0 +1,4 @@
+{"event": "ingest", "model": "gemini-embedding-2", "source": "Always keep a 5 second.txt", "chunks": 1, "estimated_tokens": 235, "timestamp": "2026-06-08T07:53:13.930032Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "Always keep a 5 second.txt", "chunks": 1, "estimated_tokens": 235, "timestamp": "2026-06-08T07:54:25.507684Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 693, "output_tokens": 38, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-06-08T07:55:40.559852Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "uploads/Always keep a 5 second.txt", "chunks": 1, "estimated_tokens": 235, "timestamp": "2026-06-08T07:56:35.468434Z"}

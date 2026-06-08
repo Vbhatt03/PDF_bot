@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from src.ingest import extract, chunk_pages, embed_chunks
 from src.query import ask
+from src import tokens
 load_dotenv()
 
 try:
@@ -90,8 +91,18 @@ async def ingest(file: UploadFile = File(...), provider: str = "ollama"):
             shutil.copyfileobj(file.file, f)
         pages = extract(str(dest))
         chunks = chunk_pages(pages)
-        embed_chunks(chunks, provider=provider)                
-        return {"source": str(dest), "pages": len(pages), "chunks": len(chunks)}
+        embed_chunks(chunks, provider=provider)
+        
+        # Include token usage in response
+        response = {
+            "source": str(dest),
+            "pages": len(pages),
+            "chunks": len(chunks),
+        }
+        if provider == "gemini":
+            response["token_usage"] = tokens.get_status()
+        
+        return response
     except RuntimeError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
     except Exception as e:
@@ -114,3 +125,25 @@ async def chat(payload: dict):
         }, status_code=500)
     
     return ask(query, source=source, provider=provider)
+
+
+@app.get("/tokens/status")
+def token_status(provider: str = "gemini"):
+    """Return current token usage statistics."""
+    if provider != "gemini":
+        return JSONResponse(
+            {"error": "Token tracking is only available for Gemini provider"},
+            status_code=400
+        )
+    return tokens.get_status()
+
+
+@app.get("/tokens/summary")
+def token_summary(provider: str = "gemini"):
+    """Return formatted token usage summary."""
+    if provider != "gemini":
+        return JSONResponse(
+            {"error": "Token tracking is only available for Gemini provider"},
+            status_code=400
+        )
+    return {"summary": tokens.format_summary()}

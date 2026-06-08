@@ -3,6 +3,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
 import chromadb
 from chromadb.config import Settings
+from . import tokens
 
 try:
     import ollama
@@ -373,7 +374,7 @@ def get_collection(provider: str = "ollama"):                # ADD provider para
 
 
 
-def embed_chunks(chunks: list[dict], provider: str = "ollama") -> None:   # ADD provider param
+def embed_chunks(chunks: list[dict], provider: str = "ollama") -> None:
     if provider == "ollama" and not HAS_OLLAMA:
         raise RuntimeError(
             "Ollama is not installed. Install it with: pip install ollama\n"
@@ -382,18 +383,31 @@ def embed_chunks(chunks: list[dict], provider: str = "ollama") -> None:   # ADD 
             "ollama pull phi3:mini"
         )
     
-    collection = get_collection(provider)                    # PASS provider
+    collection = get_collection(provider)
     texts = [c["text"] for c in chunks]
 
-    if provider == "gemini":                                 # ADD branch
+    if provider == "gemini":
         genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+        
+        # Pre-check token usage
+        total_text = "\n".join(texts)
+        estimated = tokens.count_tokens_text(total_text, "gemini-embedding-2")
+        tokens.warn_if_over_budget(estimated, model_name="gemini-embedding-2", label="ingest")
+        
         result = genai.embed_content(
             model="models/gemini-embedding-2",
             content=texts,
             task_type="retrieval_document",
         )
-            
         embeddings = result["embedding"]
+        
+        # Record usage
+        tokens.record_ingest(
+            source=chunks[0]["source"],
+            chunk_count=len(chunks),
+            token_estimate=estimated,
+            model_name="gemini-embedding-2"
+        )
     else:
         response = ollama.embed(model="mxbai-embed-large", input=texts)
         embeddings = response["embeddings"]

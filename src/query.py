@@ -2,7 +2,7 @@
 from .ingest import get_collection
 import os
 import google.generativeai as genai
-
+from . import tokens
 try:
     import ollama
     HAS_OLLAMA = True
@@ -107,22 +107,51 @@ def build_prompt(query: str, chunks: list[dict]) -> str:
 def ask(query: str, source=None, provider: str = "ollama") -> dict:
     chunks = retrieve_chunks(embed_query(query, provider), source=source, provider=provider)
     if not chunks:
-        return {"answer": "[NOT FOUND]", "chunks": [], "provider": provider}
+        return {
+            "answer": "[NOT FOUND]",
+            "chunks": [],
+            "provider": provider,
+            "token_usage": tokens.get_status(),
+        }
 
     user_prompt = build_prompt(query, chunks)
 
-    if provider == "gemini":                                 # ADD branch
+    if provider == "gemini":
         genai.configure(api_key=os.environ["GEMINI_API_KEY"])
         model = genai.GenerativeModel("gemini-3.5-flash", system_instruction=SYSTEM_PROMPT)
-        response = model.generate_content(user_prompt)
+        
+        # Count input tokens and check budget
+        input_tokens = model.count_tokens(user_prompt).total_tokens
+        tokens.warn_if_over_budget(input_tokens, model_name="gemini-3.5-flash", label="query")
+        
+        # Configure output token limit
+        config = None
+        if tokens.MAX_OUTPUT_TOKENS > 0:
+            config = genai.types.GenerationConfig(max_output_tokens=tokens.MAX_OUTPUT_TOKENS)
+        
+        # Generate response
+        response = model.generate_content(user_prompt, generation_config=config)
         answer = response.text.strip()
+        
+        # Extract output tokens from usage metadata
+        usage = response.usage_metadata
+        output_tokens = usage.candidates_token_count if usage else 0
+        
+        # Record token usage (headers not available in current SDK)
+        tokens.record_query(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            model_name="gemini-3.5-flash",
+            remaining_requests=None,
+            remaining_tokens=None,
+        )
     else:
         if not HAS_OLLAMA:
             raise RuntimeError(
-            "Ollama is not installed. Install it with: pip install ollama\n"
-            "Or install the optional dependency: pip install -e .[ollama]\n"
-            "Once Ollama installation is complete, run: ollama pull mxbai-embed-large\n"
-            "ollama pull phi3:mini"
+                "Ollama is not installed. Install it with: pip install ollama\n"
+                "Or install the optional dependency: pip install -e .[ollama]\n"
+                "Once Ollama installation is complete, run: ollama pull mxbai-embed-large\n"
+                "ollama pull phi3:mini"
             )
         response = ollama.chat(
             model="phi3:mini",
@@ -134,9 +163,19 @@ def ask(query: str, source=None, provider: str = "ollama") -> dict:
         answer = response["message"]["content"].strip()
 
     if "[NOT FOUND]" in answer:
-        return {"answer": "The PDF does not contain sufficient information to answer the question.", "chunks": [], "provider": provider}
+        return {
+            "answer": "The PDF does not contain sufficient information to answer the question.",
+            "chunks": [],
+            "provider": provider,
+            "token_usage": tokens.get_status(),
+        }
 
-    return {"answer": answer, "chunks": chunks, "provider": provider}
+    return {
+        "answer": answer,
+        "chunks": chunks,
+        "provider": provider,
+        "token_usage": tokens.get_status(),
+    }
 
 
 if __name__ == "__main__":

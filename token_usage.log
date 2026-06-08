@@ -2,3 +2,8 @@
 {"event": "ingest", "model": "gemini-embedding-2", "source": "Always keep a 5 second.txt", "chunks": 1, "estimated_tokens": 235, "timestamp": "2026-06-08T07:54:25.507684Z"}
 {"event": "query", "model": "gemini-3.5-flash", "input_tokens": 693, "output_tokens": 38, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-06-08T07:55:40.559852Z"}
 {"event": "ingest", "model": "gemini-embedding-2", "source": "uploads/Always keep a 5 second.txt", "chunks": 1, "estimated_tokens": 235, "timestamp": "2026-06-08T07:56:35.468434Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "RevitHouse.stl", "chunks": 3, "estimated_tokens": 187, "timestamp": "2026-06-08T09:58:17.079031Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 679, "output_tokens": 344, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-06-08T09:58:37.213595Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 678, "output_tokens": 18, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-06-08T09:59:20.029914Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 681, "output_tokens": 17, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-06-08T09:59:42.665689Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "EWSN2025_Visio_ArrowandEatingDetection.pdf", "chunks": 34, "estimated_tokens": 11363, "timestamp": "2026-06-08T10:00:09.273264Z"}

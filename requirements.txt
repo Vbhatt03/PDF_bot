@@ -12,3 +12,5 @@ pdf2image
 Pillow
 pygltflib>=1.16
 numpy-stl>=3.0.0
+pandas
+google-genai

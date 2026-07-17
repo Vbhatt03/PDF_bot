@@ -307,6 +307,65 @@ def extract_stl(stl_path: str) -> list[dict]:
 
     return pages
 
+def extract_json(json_path: str, rows_per_page: int = 50) -> list[dict]:
+    """Extract text from a JSON file. Formats as markdown table for arrays of objects."""
+    import json
+    pages = []
+    
+    with open(json_path, "r", encoding="utf-8-sig") as f:
+        data = json.load(f)
+    
+    # Handle different JSON structures
+    if isinstance(data, list):
+        # Array of objects - treat like CSV
+        if data and isinstance(data[0], dict):
+            rows = data
+            headers = list(data[0].keys())
+            
+            for i in range(0, len(rows), rows_per_page):
+                batch = rows[i:i + rows_per_page]
+                
+                md = "| " + " | ".join(headers) + " |\n"
+                md += "| " + " | ".join(["---"] * len(headers)) + " |\n"
+                for row in batch:
+                    values = [str(row.get(h, "")).strip()[:50] for h in headers]
+                    md += "| " + " | ".join(values) + " |\n"
+                
+                if md.strip():
+                    pages.append({"page": i // rows_per_page + 1, "text": md})
+        else:
+            # Array of primitives or mixed types
+            text = "\n".join(str(item) for item in data)
+            if text.strip():
+                pages.append({"page": 1, "text": text})
+    
+    elif isinstance(data, dict):
+        # Object - convert to readable key-value format
+        lines = []
+        def flatten(obj, prefix=""):
+            result = []
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    result.extend(flatten(v, f"{prefix}{k}."))
+            elif isinstance(obj, list):
+                for i, item in enumerate(obj):
+                    result.extend(flatten(item, f"{prefix}[{i}]."))
+            else:
+                result.append(f"{prefix.rstrip('.')}: {obj}")
+            return result
+        
+        lines = flatten(data)
+        if lines:
+            pages.append({"page": 1, "text": "\n".join(lines)})
+    
+    else:
+        # Primitive values
+        text = str(data)
+        if text.strip():
+            pages.append({"page": 1, "text": text})
+    
+    return pages
+
 def extract(file_path: str) -> list[dict]:
     """
     Unified entry point. Dispatches to PDF or TXT extractor based on extension.
@@ -317,7 +376,7 @@ def extract(file_path: str) -> list[dict]:
         - 'source': str  (original file path)
     
     Args:
-        file_path: Path to PDF, TXT, or CSV file
+        file_path: Path to PDF, TXT, CSV, JSON, GLB, or STL file
     """
     if file_path.lower().endswith(".pdf"):
         pages = extract_pdf(file_path)
@@ -333,6 +392,8 @@ def extract(file_path: str) -> list[dict]:
         pages = extract_glb(file_path)
     elif file_path.lower().endswith(".stl"):
         pages = extract_stl(file_path)
+    elif file_path.lower().endswith(".json"):
+        pages = extract_json(file_path)
     else:
         raise ValueError(f"Unsupported file type: {file_path}")
 

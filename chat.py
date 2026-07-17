@@ -33,7 +33,7 @@ def check_ollama():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("files", nargs="+", help="One or more PDF/TXT/CSV/STL files")
+    parser.add_argument("files", nargs="+", help="One or more PDF/TXT/CSV/JSON/STL files")
     parser.add_argument(
         "--provider", choices=["ollama", "gemini"], default="gemini",
         help="Backend to use (default: gemini)"

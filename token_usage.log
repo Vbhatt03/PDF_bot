@@ -49,3 +49,27 @@
 {"event": "query", "model": "gemini-3.5-flash", "input_tokens": 818, "output_tokens": 28, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-06-09T09:41:37.400708Z"}
 {"event": "query", "model": "gemini-3.5-flash", "input_tokens": 2722, "output_tokens": 42, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-06-09T09:41:38.471857Z"}
 {"event": "query", "model": "gemini-3.5-flash", "input_tokens": 2980, "output_tokens": 192, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-06-09T09:41:40.008441Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "json-trial.json", "chunks": 1, "estimated_tokens": 356, "timestamp": "2026-07-17T18:09:52.490660Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "uploads/json-trial.json", "chunks": 1, "estimated_tokens": 356, "timestamp": "2026-07-17T18:10:21.575869Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "uploads/json-trial.json", "chunks": 1, "estimated_tokens": 356, "timestamp": "2026-07-17T18:12:28.859012Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "json-trial.json", "chunks": 1, "estimated_tokens": 356, "timestamp": "2026-07-17T18:41:24.268178Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "json-trial.json", "chunks": 1, "estimated_tokens": 356, "timestamp": "2026-07-17T18:44:00.116838Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "json-trial.json", "chunks": 1, "estimated_tokens": 356, "timestamp": "2026-07-17T18:47:05.444425Z"}
+{"event": "ingest", "model": "gemini-embedding-2", "source": "Always keep a 5 second.txt", "chunks": 1, "estimated_tokens": 235, "timestamp": "2026-07-17T18:51:45.207223Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 744, "output_tokens": 23, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T11:54:56.910689Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 816, "output_tokens": 23, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T11:54:58.228114Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 863, "output_tokens": 20, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T11:54:59.970733Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 757, "output_tokens": 36, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T11:55:45.437285Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 860, "output_tokens": 38, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T11:55:47.075346Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 2063, "output_tokens": 244, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T11:55:49.842675Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 744, "output_tokens": 23, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:03:57.100918Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 801, "output_tokens": 23, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:03:58.318405Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 858, "output_tokens": 25, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:03:59.444296Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 915, "output_tokens": 27, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:04:00.860939Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 974, "output_tokens": 44, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:04:02.311046Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 744, "output_tokens": 23, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:06:45.518937Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 816, "output_tokens": 23, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:06:46.747079Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 863, "output_tokens": 20, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:06:47.729699Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 744, "output_tokens": 23, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:07:06.430957Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 818, "output_tokens": 25, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:07:09.555655Z"}
+{"event": "query", "model": "gemini-3.5-flash", "input_tokens": 1026, "output_tokens": 210, "remaining_requests": null, "remaining_tokens": null, "timestamp": "2026-10-03T13:07:13.337814Z"}

@@ -45,6 +45,9 @@
     <option value="ollama">Ollama (local)</option>
     <option value="gemini">Gemini API</option>
   </select>
+  <label style="font-size:0.85rem; color:#555; display:none" id="tools-label">
+  <input type="checkbox" id="use-tools"> Enable Tool Calling
+  </label>
   <label id="file-label" class="disabled" for="file-input" style="opacity:0.5; cursor:not-allowed">Upload file</label>
   <input id="file-input" type="file" accept=".pdf,.txt,.csv,.glb,.stl,model/gltf+binary,application/octet-stream" multiple disabled>
   <button id="tokens-btn" style="padding:6px 12px; background:#f0ad4e; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:0.85rem; display:none" onclick="showTokenUsage()">📊 Token Usage</button>
@@ -174,12 +177,15 @@
   providerSelect.addEventListener("change", () => {
     const selectedProvider = providerSelect.value;
     const tokensBtn = document.getElementById("tokens-btn");
+    const toolsLabel = document.getElementById("tools-label");
     setupPanel.style.display = "none";
     if (selectedProvider === "ollama") {
       checkOllamaSetup();
       tokensBtn.style.display = "none";
-    } else if (selectedProvider === "gemini") {
+    } 
+     else if (selectedProvider === "gemini") {
       enableUpload();
+      toolsLabel.style.display = "inline-block"; 
       status.textContent = "Gemini API selected. Ready to upload.";
       tokensBtn.style.display = "inline-block";
     } else {
@@ -232,10 +238,11 @@
     appendMsg(query, "user");
 
     try {
-      const res  = await fetch("/chat", {
+      const useTools = document.getElementById("use-tools").checked;
+      const res = await fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, source: sources, provider: currentProvider }),
+        body: JSON.stringify({ query, source: sources, provider: currentProvider, use_tools: useTools }),
       });
       const data = await res.json();
 
@@ -247,7 +254,11 @@
       }
 
       let sourcesText = "";
-      if (data.chunks && data.chunks.length) {
+      if (data.tool_results && data.tool_results.length) {
+        sourcesText = "\n\nTools used:\n" + data.tool_results
+          .map(tr => `  ${tr.tool}: ${JSON.stringify(tr.arguments)}`)
+          .join("\n");
+      } else if (data.chunks && data.chunks.length) {
         sourcesText = "\n\nSources:\n" + data.chunks
           .map(c => `  Page ${c.page}  (${c.similarity})  ${c.source.split("/").pop()}`)
           .join("\n");

@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.ingest import extract, chunk_pages, embed_chunks
 from src.query import ask
 from src import tokens
+from src import tool_call as tool_call_module
 load_dotenv()
 
 try:
@@ -108,23 +109,40 @@ async def ingest(file: UploadFile = File(...), provider: str = "ollama"):
     except Exception as e:
         return JSONResponse({"error": f"Ingest failed: {str(e)}"}, status_code=500)
 
-
 @app.post("/chat")
 async def chat(payload: dict):
     query = payload.get("query", "").strip()
     source = payload.get("source")       # can be str, list, or None
     provider = payload.get("provider", "ollama")
+    use_tools = payload.get("use_tools", False)  # NEW
     if not query:
         return JSONResponse({"error": "query is required"}, status_code=400)
     if not source:
         return JSONResponse({"error": "source is required"}, status_code=400)
-    
+
+    if use_tools:
+        if provider != "gemini":
+            return JSONResponse({"error": "Tool calling is only supported with Gemini provider"}, status_code=400)
+
+        sources = source if isinstance(source, list) else [source]
+        csv_files = [s for s in sources if s.lower().endswith('.csv')]
+        doc_files = [s for s in sources if s.lower().endswith(('.pdf', '.txt'))]
+
+        if csv_files:
+            caller = tool_call_module.CSVToolCaller(csv_files)
+            return caller.ask(query)
+        elif doc_files:
+            caller = tool_call_module.DocumentToolCaller(doc_files)
+            return caller.ask(query)
+        else:
+            return JSONResponse({"error": "No supported files (CSV, PDF, TXT) for tool calling"}, status_code=400)
+
     if provider == "ollama" and not HAS_OLLAMA:
         return JSONResponse({
             "error": "Ollama is not installed. Please run: bash setup_ollama.sh"
         }, status_code=500)
-    
-    return ask(query, source=source, provider=provider)
+
+    return ask(query, source=source, provider=provider)    
 
 
 @app.get("/tokens/status")
